@@ -1,6 +1,7 @@
 '''
 CS 494P Final Networking Project
 IRC CHAT
+Server Implementation
 '''
 
 import socket
@@ -8,7 +9,7 @@ import threading
 
 
 HOST = '127.0.0.1'  # localhost
-PORT = 65535
+PORT = 60000
 SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 SERVER.bind((HOST, PORT))
 SERVER.listen()
@@ -39,16 +40,18 @@ def handleClient(client):
 def runServer():
     while True:
         client, address = SERVER.accept()
-        print(f'Connected with {str(address)}.')
 
         client.send('NICK'.encode('ascii'))
         nick = client.recv(1024).decode('ascii')
         nicknames.append(nick)
         clients.append(client)
 
-        print(f'Nickname is {nick}.')
-        broadcastMsg(f'{nick} has joined.'.encode('ascii'))
-        client.send('Connected to server.'.encode('ascii'))
+        # Display in server
+        print(f'User [{nick}] has connected with: {str(address)}.')
+
+        # Display in chatroom
+        broadcastMsg(f'{nick} has joined the channel.'.encode('ascii'))
+        # client.send('Connected to server.'.encode('ascii'))
 
         # Handle multiple clients with threading
         thread = threading.Thread(target=handleClient, args=(client,))
