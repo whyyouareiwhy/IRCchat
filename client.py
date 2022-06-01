@@ -25,11 +25,6 @@ def receive():
             message = client.recv(HEADER).decode('utf-8')
             if 'NICK' == message:
                 client.send(nickname.encode('utf-8'))
-            # elif 'ADDCHAN' == message:
-            #     print("**************")
-            #     room_input = input("Enter new channel name: ")
-            #     room = room_input[len(nickname) + 2:]
-            #     client.send(room.encode('utf-8'))
             else:
                 print(f"~~ {message}")
         except:
@@ -47,17 +42,27 @@ def write():
         if message == "/users":
             room = input("Enter channel to display its users: ")
             client.send(room.encode('utf-8'))
+        elif message == "/privatemsg":
+            user = input("Enter user for private message: ")
+            # print(f"user for priv msg <{user}>")
+            client.send(message.encode('utf-8'))
+            time.sleep(0.1)
+            client.send(user.encode('utf-8'))
+            time.sleep(0.1)
+            msg = input("Enter message: ")
+            nick_msg = nickname + ": " + msg
+            # print(f"nick_msg <{nick_msg}>")
+            client.send(nick_msg.encode('utf-8'))
         elif message == "/channelmsg":
             # Send a message to all users in specified channel
             room = input("Enter channel name to message: ")
             client.send(message.encode('utf-8'))
-            time.sleep(1)
-            client.send(room.encode('utf-8'))
-            time.sleep(1)
+            time.sleep(0.1)
             msg = input("Enter message: ")
-            client.send(msg.encode('utf-8'))
-            time.sleep(1)
-            client.send(nickname.encode('utf-8'))
+            client.send(room.encode('utf-8'))
+            time.sleep(0.1)
+            nick_msg = nickname + ": " + msg
+            client.send(nick_msg.encode('utf-8'))
         elif message == "/channels":
             client.send(message.encode('utf-8'))
         elif message == "/add":

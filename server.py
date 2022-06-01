@@ -22,7 +22,8 @@ server.listen()
 clients = []
 nicknames = []
 default_channel = "#general"
-channels = {}
+channels = {}  # dictionary of channel -> nickname
+users = []  # store tuples of (nickname, client)
 # List of clients in the '#general' channel created by default
 channels[default_channel] = []
 
@@ -32,20 +33,39 @@ def broadcastMsg(msg):
         client.send(msg)
 
 
-def channelMsg(channel, msg, user):
-    print(f"server channelMsg")
-    for i in channels:
-        print(f"i [{i}]")
-        if i == channel:
-            print(f"i [{i}] channel [{channel}]")
-            for j in range(len(channels[channel])):
-                print(f"j [{j}] msg [{msg}]")
-                print(f"msg [{msg}] user [{user}]")
+# def channelMsg(room, msg):
+#     print(f"server channelMsg")
+#     for i in channels:
+#         print(f"i [{i}]")
+#         if i == room:
+#             print(f"i [{i}] room [{room}]")
+#             for j in range(len(channels[room])):
+#                 print(f"j [{j}] msg [{msg}]")
+#                 # print(f"msg [{msg}] user [{user}]")
+#                 user = channels[room][i]
 
 
-'''Unimplemented'''
-def personalMsg(client, msg):
-    client.send(msg)
+def channelMsg(channel, msg):
+    for i in range(len(channels[channel])):
+        # print(f"i <{i}> len(channels[channel]) <{len(channels[channel])}>")
+        receiver = channels[channel][i]
+        # print(f"i <{i}> receiver [{receiver}]")
+        # directlMsg(receiver, msg)
+        for j in range(len(users)):
+            # print(f" j <{j}>")
+            if users[j][0] == receiver:
+                # print(f"users[j][0] <{users[j][0]}> receiver <{receiver}>")
+                users[j][1].send(msg.encode('utf-8'))
+
+
+# Send direct private msg to a user
+def directlMsg(user, msg):
+    # print("directMsg")
+    for i in range(len(users)):
+        # print(f"i <{i}> range(len(user)) <{range(len(users))}>")
+        if users[i][0] == user:
+            # print(f"users[i][0] <{users[i][0]}> nick <{nick}>")
+            users[i][1].send(msg.encode('utf-8'))
 
 
 def chanExists(chan):
@@ -54,6 +74,29 @@ def chanExists(chan):
             return True
     return False
 
+def clientsInChannel(client, channel):
+    client.send(f"Users in channel {channel}:".encode('utf-8'))
+    for i in range(len(channels[channel])):
+        # print(f"i <{i}> channels[channel] <{channels[channel]}>")
+        # print(f"len <{len(channels[channel])}>")
+        # user = channels[default_channel][chan]
+        user = channels[channel][i]
+        # print(f"user [{user}]")
+        user += " "
+        client.send(user.encode('utf-8'))
+
+
+def dispChannels(client):
+    for i in channels:
+        client.send(i.encode('utf-8'))
+        time.sleep(0.01)
+
+
+# def userExists(nick):
+#     for i in users:
+#         if i == nick:
+#             return True
+#     return False
 
 # Called continuously in thread after server-client connection established
 # for each individual client. Handles all client tasks.
@@ -65,24 +108,29 @@ def handleClient(client):
             if chanExists(message):
                 # Display all users in provided channel
                 clientsInChannel(client, message)
+            elif message == "/privatemsg":
+                # print("/privatemsg reached")
+                receiver = client.recv(HEADER).decode('utf-8')
+                # print(f"receiver <{receiver}>")
+                msg = client.recv(HEADER).decode('utf-8')
+                # print(f"msg <{msg}>")
+                directlMsg(receiver, msg)
             elif message == "/channelmsg":
-                print(f"server A message [{message}]")
-                chan = client.recv(HEADER).decode('utf-8')
-                print(f"server B chan [{chan}]")
-                user = client.recv(HEADER).decode('utf-8')
-                print(f"server C user [{user}]")
-                channelMsg(message, chan, user)
+                room = client.recv(HEADER).decode('utf-8')
+                msg = client.recv(HEADER).decode('utf-8')
+                print(f"room <{room}> msg <{msg}>")
+                channelMsg(room, msg)
             elif message == "/channels":
                 # Display all active channels
                 dispChannels(client)
             elif message == "/add":
-                # Add new channel to channels dict
+                # Add new room to channels
                 room = client.recv(HEADER).decode('utf-8')
                 print(f"room <{room}>")
                 if not chanExists(room):
                     channels[room] = []
                 user = client.recv(HEADER).decode('utf-8')
-                print(f"user [{user}]")
+                print(f"user <{user}>")
                 channels[room].append(user)
             else:
                 broadcastMsg(message.encode('utf-8'))
@@ -107,7 +155,10 @@ def runServer():
         nick = client.recv(HEADER).decode('utf-8')
         nicknames.append(nick)
         clients.append(client)
+        # Every new user gets added to #general channel
         channels[default_channel].append(nick)
+        # Add a tuple of nickname and client to users for direct lookup
+        users.append((nick, client))
 
         # Display in server
         print(f'User [{nick}] has connected with: {str(address)}.')
@@ -121,22 +172,7 @@ def runServer():
         thread.start()
 
 
-def clientsInChannel(client, channel):
-    client.send(f"Users in channel {channel}:".encode('utf-8'))
-    for i in range(len(channels[channel])):
-        print(f"i <{i}> channels[channel] <{channels[channel]}>")
-        print(f"len <{len(channels[channel])}>")
-        # user = channels[default_channel][chan]
-        user = channels[channel][i]
-        print(f"user [{user}]")
-        user += " "
-        client.send(user.encode('utf-8'))
 
-
-def dispChannels(client):
-    for i in channels:
-        client.send(i.encode('utf-8'))
-        time.sleep(0.01)
 
 
 # Run server until stopped with ctr-c by user
