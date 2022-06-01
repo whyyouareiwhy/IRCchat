@@ -47,14 +47,29 @@ def write():
         if message == "/users":
             room = input("Enter channel to display its users: ")
             client.send(room.encode('utf-8'))
+        elif message == "/channelmsg":
+            # Send a message to all users in specified channel
+            room = input("Enter channel name to message: ")
+            client.send(message.encode('utf-8'))
+            time.sleep(1)
+            client.send(room.encode('utf-8'))
+            time.sleep(1)
+            msg = input("Enter message: ")
+            client.send(msg.encode('utf-8'))
+            time.sleep(1)
+            client.send(nickname.encode('utf-8'))
         elif message == "/channels":
             client.send(message.encode('utf-8'))
         elif message == "/add":
-            room_input = input("Enter new channel name: ")
             client.send(message.encode('utf-8'))
             time.sleep(0.1)
+            room_input = input("Enter new channel name: ")
             client.send(room_input.encode('utf-8'))
+            time.sleep(0.1)
             print(f"Added {room_input}!")
+            # time.sleep(0.1)
+            client.send(nickname.encode('utf-8'))
+            time.sleep(1)
         else:
             client.send(msg_input.encode('utf-8'))
 

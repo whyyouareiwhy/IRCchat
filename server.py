@@ -32,6 +32,17 @@ def broadcastMsg(msg):
         client.send(msg)
 
 
+def channelMsg(channel, msg, user):
+    print(f"server channelMsg")
+    for i in channels:
+        print(f"i [{i}]")
+        if i == channel:
+            print(f"i [{i}] channel [{channel}]")
+            for j in range(len(channels[channel])):
+                print(f"j [{j}] msg [{msg}]")
+                print(f"msg [{msg}] user [{user}]")
+
+
 '''Unimplemented'''
 def personalMsg(client, msg):
     client.send(msg)
@@ -54,13 +65,25 @@ def handleClient(client):
             if chanExists(message):
                 # Display all users in provided channel
                 clientsInChannel(client, message)
+            elif message == "/channelmsg":
+                print(f"server A message [{message}]")
+                chan = client.recv(HEADER).decode('utf-8')
+                print(f"server B chan [{chan}]")
+                user = client.recv(HEADER).decode('utf-8')
+                print(f"server C user [{user}]")
+                channelMsg(message, chan, user)
             elif message == "/channels":
                 # Display all active channels
                 dispChannels(client)
             elif message == "/add":
                 # Add new channel to channels dict
-                msg = client.recv(HEADER).decode('utf-8')
-                channels[msg] = []
+                room = client.recv(HEADER).decode('utf-8')
+                print(f"room <{room}>")
+                if not chanExists(room):
+                    channels[room] = []
+                user = client.recv(HEADER).decode('utf-8')
+                print(f"user [{user}]")
+                channels[room].append(user)
             else:
                 broadcastMsg(message.encode('utf-8'))
         except:
@@ -100,8 +123,12 @@ def runServer():
 
 def clientsInChannel(client, channel):
     client.send(f"Users in channel {channel}:".encode('utf-8'))
-    for chan in range(len(channels[channel])):
-        user = channels[default_channel][chan]
+    for i in range(len(channels[channel])):
+        print(f"i <{i}> channels[channel] <{channels[channel]}>")
+        print(f"len <{len(channels[channel])}>")
+        # user = channels[default_channel][chan]
+        user = channels[channel][i]
+        print(f"user [{user}]")
         user += " "
         client.send(user.encode('utf-8'))
 
