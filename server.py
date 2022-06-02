@@ -33,38 +33,18 @@ def broadcastMsg(msg):
         client.send(msg)
 
 
-# def channelMsg(room, msg):
-#     print(f"server channelMsg")
-#     for i in channels:
-#         print(f"i [{i}]")
-#         if i == room:
-#             print(f"i [{i}] room [{room}]")
-#             for j in range(len(channels[room])):
-#                 print(f"j [{j}] msg [{msg}]")
-#                 # print(f"msg [{msg}] user [{user}]")
-#                 user = channels[room][i]
-
-
 def channelMsg(channel, msg):
     for i in range(len(channels[channel])):
-        # print(f"i <{i}> len(channels[channel]) <{len(channels[channel])}>")
         receiver = channels[channel][i]
-        # print(f"i <{i}> receiver [{receiver}]")
-        # directlMsg(receiver, msg)
         for j in range(len(users)):
-            # print(f" j <{j}>")
             if users[j][0] == receiver:
-                # print(f"users[j][0] <{users[j][0]}> receiver <{receiver}>")
                 users[j][1].send(msg.encode('utf-8'))
 
 
 # Send direct private msg to a user
 def directlMsg(user, msg):
-    # print("directMsg")
     for i in range(len(users)):
-        # print(f"i <{i}> range(len(user)) <{range(len(users))}>")
         if users[i][0] == user:
-            # print(f"users[i][0] <{users[i][0]}> nick <{nick}>")
             users[i][1].send(msg.encode('utf-8'))
 
 
@@ -74,29 +54,23 @@ def chanExists(chan):
             return True
     return False
 
+
 def clientsInChannel(client, channel):
-    client.send(f"Users in channel {channel}:".encode('utf-8'))
+    client.send(f"\tUsers in channel {channel}:".encode('utf-8'))
     for i in range(len(channels[channel])):
-        # print(f"i <{i}> channels[channel] <{channels[channel]}>")
-        # print(f"len <{len(channels[channel])}>")
-        # user = channels[default_channel][chan]
         user = channels[channel][i]
-        # print(f"user [{user}]")
-        user += " "
+        user = "\t\t" + user
         client.send(user.encode('utf-8'))
-
-
-def dispChannels(client):
-    for i in channels:
-        client.send(i.encode('utf-8'))
         time.sleep(0.01)
 
 
-# def userExists(nick):
-#     for i in users:
-#         if i == nick:
-#             return True
-#     return False
+def dispChannels(client):
+    client.send("Active channels:\n".encode('utf-8'))
+    for i in channels:
+        i = "\t" + i
+        client.send(i.encode('utf-8'))
+        time.sleep(0.01)
+
 
 # Called continuously in thread after server-client connection established
 # for each individual client. Handles all client tasks.
@@ -109,29 +83,31 @@ def handleClient(client):
                 # Display all users in provided channel
                 clientsInChannel(client, message)
             elif message == "/privatemsg":
-                # print("/privatemsg reached")
                 receiver = client.recv(HEADER).decode('utf-8')
-                # print(f"receiver <{receiver}>")
                 msg = client.recv(HEADER).decode('utf-8')
-                # print(f"msg <{msg}>")
                 directlMsg(receiver, msg)
             elif message == "/channelmsg":
+                # Send private message to channel
                 room = client.recv(HEADER).decode('utf-8')
                 msg = client.recv(HEADER).decode('utf-8')
-                print(f"room <{room}> msg <{msg}>")
-                channelMsg(room, msg)
+                if chanExists(room):
+                    channelMsg(room, msg)
             elif message == "/channels":
                 # Display all active channels
                 dispChannels(client)
             elif message == "/add":
                 # Add new room to channels
                 room = client.recv(HEADER).decode('utf-8')
-                print(f"room <{room}>")
                 if not chanExists(room):
                     channels[room] = []
                 user = client.recv(HEADER).decode('utf-8')
-                print(f"user <{user}>")
                 channels[room].append(user)
+            elif message == "/leave":
+                # Leave specified channel
+                room = client.recv(HEADER).decode('utf-8')
+                user = client.recv(HEADER).decode('utf-8')
+                if chanExists(room):
+                    channels[room].remove(user)
             else:
                 broadcastMsg(message.encode('utf-8'))
         except:
@@ -170,9 +146,6 @@ def runServer():
         # Handle multiple clients with threading
         thread = threading.Thread(target=handleClient, args=(client,))
         thread.start()
-
-
-
 
 
 # Run server until stopped with ctr-c by user
